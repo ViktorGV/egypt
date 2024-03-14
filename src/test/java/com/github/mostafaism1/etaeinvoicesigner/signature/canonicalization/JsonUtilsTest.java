@@ -1,23 +1,22 @@
 package com.github.mostafaism1.etaeinvoicesigner.signature.canonicalization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.json.JSONException;
+
 import org.junit.jupiter.api.Test;
 
-public class ETAJsonCanonicalizationStrategyTest {
+public class JsonUtilsTest {
 
 
-    private CanonicalizationStrategy canonicalizationStrategy =
-            new ETAJsonCanonicalizationStrategy();
+    private final JsonUtils jsonUtilsStrategy = new JsonUtils();
 
     @Test
-    public void canonicalize_should_pass_ETA_official_example() throws JSONException {
+    public void canonicalize_should_pass_ETA_official_example() {
         // Given.
         String input = getETAExampleUncanonical();
         String expected = getETAExampleCanonical();
 
         // When.
-        String actual = canonicalizationStrategy.canonicalize(input);
+        String actual = jsonUtilsStrategy.canonicalize(input);
 
         // Then.
         assertEquals(expected, actual);

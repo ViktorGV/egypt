@@ -1,79 +1,88 @@
 package com.github.mostafaism1.etaeinvoicesigner.signature.security;
 
-import com.github.mostafaism1.etaeinvoicesigner.configuration.ConfigurationReader;
 import com.github.mostafaism1.etaeinvoicesigner.configuration.FileConfigurationReader;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.Provider;
-import java.security.Security;
+import org.springframework.stereotype.Component;
+
+import java.security.*;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 
-public enum HardwareTokenSecurityFactory implements SecurityFactory {
-  INSTANCE;
+@Component
+public class HardwareTokenSecurityFactory {
+    private static final String PROVIDER_NAME = "SunPKCS11";
+    private static final String KEY_STORE_TYPE = "PKCS11";
 
-  private static final String PROVIDER_NAME = "SunPKCS11";
-  private static final String KEY_STORE_TYPE = "PKCS11";
+    private final FileConfigurationReader configurationReader;
+    private Provider provider;
+    private KeyStore keyStore;
+    private final String alias;
 
-  private ConfigurationReader configurationReader;
-  private Provider provider;
-  private KeyStore keyStore;
-  private String alias;
-
-  private HardwareTokenSecurityFactory() {
-    configurationReader = FileConfigurationReader.INSTANCE;
-    provider = Security.getProvider(PROVIDER_NAME);
-    addSecurityProvider();
-    initializeKeystore();
-    alias =
-      SecurityUtils.getAliasByCertificateIssuerName(
-        keyStore,
-        configurationReader.getCertificateIssuerName()
-      );
-  }
-
-  @Override
-  public void addSecurityProvider() {
-    provider =
-      provider.configure(configurationReader.getPkcs11ConfigFilePath());
-    Security.addProvider(provider);
-  }
-
-  @Override
-  public PrivateKey getPrivateKey() {
-    try {
-      PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, null);
-      return privateKey;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    HardwareTokenSecurityFactory() {
+        configurationReader = FileConfigurationReader.INSTANCE;
+        provider = Security.getProvider(PROVIDER_NAME);
+        addSecurityProvider();
+        initializeKeystore();
+        alias = getAliasByCertificateIssuerName(
+                keyStore,
+                configurationReader.getCertificateIssuerName()
+        );
     }
-  }
 
-  @Override
-  public X509Certificate getCertificate() {
-    try {
-      X509Certificate x509Certificate = (X509Certificate) keyStore.getCertificate(
-        alias
-      );
-      return x509Certificate;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    public void addSecurityProvider() {
+        provider =
+                provider.configure(configurationReader.getPkcs11ConfigFilePath());
+        Security.addProvider(provider);
     }
-  }
 
-  @Override
-  public Provider getProvider() {
-    return provider;
-  }
-
-  private void initializeKeystore() {
-    try {
-      keyStore = KeyStore.getInstance(KEY_STORE_TYPE);
-      keyStore.load(
-        null,
-        configurationReader.getKeyStorePassword().toCharArray()
-      );
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    public PrivateKey getPrivateKey() {
+        try {
+            return (PrivateKey) keyStore.getKey(alias, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
+
+    public X509Certificate getCertificate() {
+        try {
+            return (X509Certificate) keyStore.getCertificate(
+                    alias
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Provider getProvider() {
+        return provider;
+    }
+
+    private void initializeKeystore() {
+        try {
+            keyStore = KeyStore.getInstance(KEY_STORE_TYPE);
+            keyStore.load(
+                    null,
+                    configurationReader.getKeyStorePassword().toCharArray()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getAliasByCertificateIssuerName(KeyStore keyStore, String targetIssuerName) {
+        try {
+            Enumeration<String> aliases;
+            aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
+                String issuerName = certificate.getIssuerX500Principal().getName();
+                if (issuerName.contains(targetIssuerName)) {
+                    return alias;
+                }
+            }
+            throw new RuntimeException();
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

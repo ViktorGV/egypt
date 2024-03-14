@@ -1,4 +1,4 @@
-package com.github.mostafaism1.etaeinvoicesigner.signature.security;
+package com.github.mostafaism1.etaeinvoicesigner.signature;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

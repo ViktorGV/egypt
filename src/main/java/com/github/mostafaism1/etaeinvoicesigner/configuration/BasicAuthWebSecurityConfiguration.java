@@ -11,32 +11,32 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class BasicAuthWebSecurityConfiguration {
-  ConfigurationReader configurationReader = FileConfigurationReader.INSTANCE;
+    FileConfigurationReader configurationReader = FileConfigurationReader.INSTANCE;
 
-  @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-      .csrf()
-      .disable()
-      .authorizeRequests()
-      .anyRequest()
-      .authenticated()
-      .and()
-      .httpBasic();
-    return http.build();
-  }
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf()
+                .disable()
+                .authorizeRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .httpBasic();
+        return http.build();
+    }
 
-  @Bean
-  public UserDetailsService users() {
-    String userName = configurationReader.getUserName();
-    String encryptedPassword =
-      "{bcrypt}" + configurationReader.getEncryptedPassword();
-    UserDetails user = User
-      .builder()
-      .username(userName)
-      .password(encryptedPassword)
-      .roles("USER")
-      .build();
-    return new InMemoryUserDetailsManager(user);
-  }
+    @Bean
+    public UserDetailsService users() {
+        String userName = configurationReader.getUserName();
+        String encryptedPassword =
+                "{bcrypt}" + configurationReader.getEncryptedPassword();
+        UserDetails user = User
+                .builder()
+                .username(userName)
+                .password(encryptedPassword)
+                .roles("USER")
+                .build();
+        return new InMemoryUserDetailsManager(user);
+    }
 }
