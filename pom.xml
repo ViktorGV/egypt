@@ -19,7 +19,7 @@
 	<description
   >A web application for canonicalizing and signing e-invoice documents according to the rules of the Egyptian Tax Authority (ETA).</description>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 	</properties>
 
 	<dependencies>
@@ -95,8 +95,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>15</source>
-					<target>15</target>
+					<source>17</source>
+					<target>17</target>
 				</configuration>
 			</plugin>
 		</plugins>
