@@ -41,7 +41,7 @@ public class SecurityUtils {
    */
   public static Date calculateDate(int hoursInFuture) {
     long secs = System.currentTimeMillis() / 1000;
-    return new Date((secs + (hoursInFuture * 60 * 60)) * 1000);
+    return new Date((secs + ((long) hoursInFuture * 60 * 60)) * 1000);
   }
 
   /**
@@ -92,28 +92,5 @@ public class SecurityUtils {
       .setProvider("BC")
       .build(keyPair.getPrivate());
     return certBldr.build(signer);
-  }
-
-  public static String getAliasByCertificateIssuerName(
-    KeyStore keyStore,
-    String targetIssuerName
-  ) {
-    try {
-      Enumeration<String> aliases;
-      aliases = keyStore.aliases();
-      while (aliases.hasMoreElements()) {
-        String alias = aliases.nextElement();
-        X509Certificate certificate = (X509Certificate) keyStore.getCertificate(
-          alias
-        );
-        String issuerName = certificate.getIssuerX500Principal().getName();
-        if (issuerName.contains(targetIssuerName)) {
-          return alias;
-        }
-      }
-      throw new RuntimeException();
-    } catch (KeyStoreException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

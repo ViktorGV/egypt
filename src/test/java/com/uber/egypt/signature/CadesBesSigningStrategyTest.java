@@ -1,6 +1,5 @@
 package com.uber.egypt.signature;
 
-import com.uber.egypt.signature.security.HardwareTokenSecurityFactory;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
@@ -47,7 +46,9 @@ public class CadesBesSigningStrategyTest {
     private CadesBesSigningStrategy signingStrategy;
 
     private HardwareTokenSecurityFactory securityFactory;
-    private String input;
+
+    // SHA-256 of input
+    private final String input = "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20";
     private String base64SignedInput;
     private byte[] signedInput;
     private CMSSignedData signedData;
@@ -67,7 +68,6 @@ public class CadesBesSigningStrategyTest {
         when(securityFactory.getCertificate()).thenReturn(certificate);
         when(securityFactory.getProvider()).thenReturn(securityProvider);
         signingStrategy = new CadesBesSigningStrategy(securityFactory);
-        input = "input";
         base64SignedInput = signingStrategy.sign(input);
         signedInput = Base64.getDecoder().decode(base64SignedInput);
         try {
@@ -261,11 +261,11 @@ public class CadesBesSigningStrategyTest {
     }
 
     @Test
-    public void signerInfo_signedAttrs_MessageDigest_should_contain_Der_Octet_String_format_for_SHA256_Hash_of_the_UTF8_encoding_of_the_data_to_be_signed() throws NoSuchAlgorithmException {
+    public void signerInfo_signedAttrs_MessageDigest_should_contain_Der_Octet_String_format_for_SHA256_Hash_of_the_UTF8_encoding_of_the_data_to_be_signed() {
         // Given.
         ASN1ObjectIdentifier messageDigestOID = PKCSObjectIdentifiers.pkcs_9_at_messageDigest;
-        MessageDigest digester = MessageDigest.getInstance("SHA-256");
-        DERSet expected = new DERSet(new DEROctetString(digester.digest(input.getBytes(StandardCharsets.UTF_8))));
+//        MessageDigest digester = MessageDigest.getInstance("SHA-256");
+        DERSet expected = new DERSet(new DEROctetString(input.getBytes()));
 
         // When.
         ASN1Encodable actual = signedAttributes.get(messageDigestOID).getAttrValues();

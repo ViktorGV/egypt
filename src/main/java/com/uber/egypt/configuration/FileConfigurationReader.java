@@ -1,11 +1,13 @@
 package com.uber.egypt.configuration;
 
+import org.springframework.context.annotation.Configuration;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-public enum FileConfigurationReader {
-    INSTANCE;
+@Configuration
+public class FileConfigurationReader {
 
     private static final String CONFIG_FILE_NAME = "application.properties";
     private final Properties properties;
@@ -31,8 +33,8 @@ public enum FileConfigurationReader {
         return properties.getProperty("auth.user.userName");
     }
 
-    public String getEncryptedPassword() {
-        return properties.getProperty("auth.user.encryptedPassword");
+    public String getPassword() {
+        return properties.getProperty("auth.user.password");
     }
 
     private Properties tryReadConfiguration() {

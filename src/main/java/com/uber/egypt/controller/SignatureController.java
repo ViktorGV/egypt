@@ -1,20 +1,23 @@
 package com.uber.egypt.controller;
 
+import com.uber.egypt.signature.CadesBesSigningStrategy;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.uber.egypt.signature.DocumentSigningService;
-import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
 @RestController
-@RequestMapping("/")
+@RequestMapping("/sign")
 public class SignatureController {
-  private DocumentSigningService documentSigningService;
+    private final CadesBesSigningStrategy cadesBesSigningStrategy;
 
-  @PostMapping
-  public String signDocuments(@RequestBody String jsonDocuments) {
-    return documentSigningService.generateSignedDocuments(jsonDocuments);
-  }
+    protected SignatureController(CadesBesSigningStrategy cadesBesSigningStrategy) {
+        this.cadesBesSigningStrategy = cadesBesSigningStrategy;
+    }
+
+    @PostMapping
+    public ResponseEntity<String> signDocuments(@RequestBody String digest) {
+        return ResponseEntity.ok(cadesBesSigningStrategy.sign(digest));
+    }
 }

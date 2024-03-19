@@ -1,19 +1,24 @@
 package com.uber.egypt.signature;
 
-import com.uber.egypt.signature.security.HardwareTokenSecurityFactory;
+import com.uber.egypt.CustomContentSigner;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
+import org.bouncycastle.asn1.cms.CMSAttributes;
 import org.bouncycastle.asn1.ess.ESSCertIDv2;
 import org.bouncycastle.asn1.ess.SigningCertificateV2;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.bouncycastle.util.encoders.DecoderException;
+import org.bouncycastle.util.encoders.Hex;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -24,6 +29,7 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 
 @Component
@@ -33,7 +39,7 @@ public class CadesBesSigningStrategy {
     private static final String SIGNATURE_ALGORITHM = "SHA256withRSAEncryption";
     private final Provider signatureProvider;
     private final PrivateKey signingKey;
-    private final Certificate signingCert;
+    private final X509Certificate signingCert;
 
     public CadesBesSigningStrategy(HardwareTokenSecurityFactory hardwareTokenSecurityFactory) {
         this.signatureProvider = hardwareTokenSecurityFactory.getProvider();
@@ -41,32 +47,33 @@ public class CadesBesSigningStrategy {
         this.signingCert = hardwareTokenSecurityFactory.getCertificate();
     }
 
-    public String sign(String data) {
+    public String sign(String digest) {
         CMSSignedData signedData;
         try {
-            signedData = buildCMSSignedData(data.getBytes(StandardCharsets.UTF_8));
+            signedData = buildCMSSignedData(digest.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(signedData.getEncoded());
         } catch (Exception e) {
             throw new SignatureException(e);
         }
     }
 
-    public CMSSignedData buildCMSSignedData(byte[] msg) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException, CMSException {
-        var signedDataGenerator = buildCMSSignedDataGenerator(msg);
-        var cmsTypedData = new CMSProcessableByteArray(PKCSObjectIdentifiers.digestedData, msg);
-        return signedDataGenerator.generate(cmsTypedData, false);
+    public CMSSignedData buildCMSSignedData(byte[] digest) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException, CMSException {
+        var signedDataGenerator = buildCMSSignedDataGenerator(digest);
+//        var cmsTypedData = new CMSProcessableByteArray(PKCSObjectIdentifiers.digestedData, digest);
+        return signedDataGenerator.generate(new CMSAbsentContent(PKCSObjectIdentifiers.digestedData), false);
     }
 
-    private CMSSignedDataGenerator buildCMSSignedDataGenerator(byte[] msg) throws CertificateEncodingException, OperatorCreationException, NoSuchAlgorithmException, IOException, CMSException {
-        var signerInfoGenerator = buildSignerInfoGenerator(msg);
+    private CMSSignedDataGenerator buildCMSSignedDataGenerator(byte[] digest) throws CertificateEncodingException, OperatorCreationException, NoSuchAlgorithmException, IOException, CMSException {
+        var signerInfoGenerator = buildSignerInfoGenerator(digest);
         var signedDataGenerator = new CMSSignedDataGenerator();
         signedDataGenerator.addSignerInfoGenerator(signerInfoGenerator);
         signedDataGenerator.addCertificate(new X509CertificateHolder(signingCert.getEncoded()));
         return signedDataGenerator;
     }
 
-    private SignerInfoGenerator buildSignerInfoGenerator(byte[] msg) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException {
-        var signedAttributesTable = buildSignedAttributeTable(msg);
+    private SignerInfoGenerator buildSignerInfoGenerator(byte[] digest) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException {
+//        byte[] hash = Hex.decode(digest);
+        var signedAttributesTable = buildSignedAttributeTable(digest);
 
         var signedAttributeGenerator = new DefaultSignedAttributeTableGenerator(signedAttributesTable);
 
@@ -76,16 +83,14 @@ public class CadesBesSigningStrategy {
         return new SignerInfoGeneratorBuilder(digestCalcProvider).setSignedAttributeGenerator(signedAttributeGenerator).setUnsignedAttributeGenerator(null).build(contentSigner, new X509CertificateHolder(signingCert.getEncoded()));
     }
 
-    private AttributeTable buildSignedAttributeTable(byte[] msg) throws NoSuchAlgorithmException, CertificateEncodingException {
+    private AttributeTable buildSignedAttributeTable(byte[] digest) throws NoSuchAlgorithmException, CertificateEncodingException {
         ASN1EncodableVector signedAttributes = new ASN1EncodableVector();
-        signedAttributes.add(buildMessageDigestAttribute(msg));
+        signedAttributes.add(buildMessageDigestAttribute(digest));
         signedAttributes.add(buildSigningCertificateV2Attribute());
         return new AttributeTable(signedAttributes);
     }
 
-    private ASN1Encodable buildMessageDigestAttribute(byte[] msg) throws NoSuchAlgorithmException {
-        var digest = MessageDigest.getInstance(DIGEST_ALGORITHM).digest(msg);
-
+    private ASN1Encodable buildMessageDigestAttribute(byte[] digest) {
         var attributeIdentifier = ASN1ObjectIdentifier.getInstance(PKCSObjectIdentifiers.pkcs_9_at_messageDigest);
         var attributeValue = new DERSet(new DEROctetString(digest));
         return new Attribute(attributeIdentifier, attributeValue);
