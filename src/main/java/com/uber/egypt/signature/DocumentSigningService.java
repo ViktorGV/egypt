@@ -31,7 +31,7 @@ public class DocumentSigningService {
         return wrapSignedDocuments(signedDocuments).toString();
     }
 
-    public String generateSignedDocument(String document) {
+    private String generateSignedDocument(String document) {
         var canonicalizedDocument = JsonUtils.canonicalize(document);
         var signature = cadesBesSigningStrategy.sign(canonicalizedDocument);
         return JsonUtils.merge(document, signature);

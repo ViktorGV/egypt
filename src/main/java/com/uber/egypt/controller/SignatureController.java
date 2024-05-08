@@ -18,6 +18,6 @@ public class SignatureController {
 
     @PostMapping
     public ResponseEntity<String> signDocuments(@RequestBody String jsonDocuments) {
-        return ResponseEntity.ok(documentSigningService.generateSignedDocument(jsonDocuments));
+        return ResponseEntity.ok(documentSigningService.generateSignedDocuments(jsonDocuments));
     }
 }
