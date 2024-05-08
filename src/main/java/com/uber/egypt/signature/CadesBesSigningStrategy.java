@@ -40,33 +40,32 @@ public class CadesBesSigningStrategy {
         this.signingCert = hardwareTokenSecurityFactory.getCertificate();
     }
 
-    public String sign(String digest) {
+    public String sign(String data) {
         CMSSignedData signedData;
         try {
-            signedData = buildCMSSignedData(digest.getBytes(StandardCharsets.UTF_8));
+            signedData = buildCMSSignedData(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(signedData.getEncoded());
         } catch (Exception e) {
             throw new SignatureException(e);
         }
     }
 
-    public CMSSignedData buildCMSSignedData(byte[] digest) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException, CMSException {
-        var signedDataGenerator = buildCMSSignedDataGenerator(digest);
-//        var cmsTypedData = new CMSProcessableByteArray(PKCSObjectIdentifiers.digestedData, digest);
-        return signedDataGenerator.generate(new CMSAbsentContent(PKCSObjectIdentifiers.digestedData), false);
+    public CMSSignedData buildCMSSignedData(byte[] msg) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException, CMSException {
+        var signedDataGenerator = buildCMSSignedDataGenerator(msg);
+        var cmsTypedData = new CMSProcessableByteArray(PKCSObjectIdentifiers.digestedData, msg);
+        return signedDataGenerator.generate(cmsTypedData, false);
     }
 
-    private CMSSignedDataGenerator buildCMSSignedDataGenerator(byte[] digest) throws CertificateEncodingException, OperatorCreationException, NoSuchAlgorithmException, IOException, CMSException {
-        var signerInfoGenerator = buildSignerInfoGenerator(digest);
+    private CMSSignedDataGenerator buildCMSSignedDataGenerator(byte[] msg) throws CertificateEncodingException, OperatorCreationException, NoSuchAlgorithmException, IOException, CMSException {
+        var signerInfoGenerator = buildSignerInfoGenerator(msg);
         var signedDataGenerator = new CMSSignedDataGenerator();
         signedDataGenerator.addSignerInfoGenerator(signerInfoGenerator);
         signedDataGenerator.addCertificate(new X509CertificateHolder(signingCert.getEncoded()));
         return signedDataGenerator;
     }
 
-    private SignerInfoGenerator buildSignerInfoGenerator(byte[] digest) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException {
-//        byte[] hash = Hex.decode(digest);
-        var signedAttributesTable = buildSignedAttributeTable(digest);
+    private SignerInfoGenerator buildSignerInfoGenerator(byte[] msg) throws CertificateEncodingException, NoSuchAlgorithmException, OperatorCreationException, IOException {
+        var signedAttributesTable = buildSignedAttributeTable(msg);
 
         var signedAttributeGenerator = new DefaultSignedAttributeTableGenerator(signedAttributesTable);
 
@@ -76,14 +75,16 @@ public class CadesBesSigningStrategy {
         return new SignerInfoGeneratorBuilder(digestCalcProvider).setSignedAttributeGenerator(signedAttributeGenerator).setUnsignedAttributeGenerator(null).build(contentSigner, new X509CertificateHolder(signingCert.getEncoded()));
     }
 
-    private AttributeTable buildSignedAttributeTable(byte[] digest) throws NoSuchAlgorithmException, CertificateEncodingException {
-        ASN1EncodableVector signedAttributes = new ASN1EncodableVector();
-        signedAttributes.add(buildMessageDigestAttribute(digest));
+    private AttributeTable buildSignedAttributeTable(byte[] msg) throws NoSuchAlgorithmException, CertificateEncodingException {
+        var signedAttributes = new ASN1EncodableVector();
+        signedAttributes.add(buildMessageDigestAttribute(msg));
         signedAttributes.add(buildSigningCertificateV2Attribute());
         return new AttributeTable(signedAttributes);
     }
 
-    private ASN1Encodable buildMessageDigestAttribute(byte[] digest) {
+    private ASN1Encodable buildMessageDigestAttribute(byte[] msg) throws NoSuchAlgorithmException {
+        var digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
+        var digest = digester.digest(msg);
         var attributeIdentifier = ASN1ObjectIdentifier.getInstance(PKCSObjectIdentifiers.pkcs_9_at_messageDigest);
         var attributeValue = new DERSet(new DEROctetString(digest));
         return new Attribute(attributeIdentifier, attributeValue);

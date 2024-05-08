@@ -17,12 +17,12 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.Store;
 import org.bouncycastle.util.StoreException;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -264,8 +264,7 @@ public class CadesBesSigningStrategyTest {
     public void signerInfo_signedAttrs_MessageDigest_should_contain_Der_Octet_String_format_for_SHA256_Hash_of_the_UTF8_encoding_of_the_data_to_be_signed() {
         // Given.
         ASN1ObjectIdentifier messageDigestOID = PKCSObjectIdentifiers.pkcs_9_at_messageDigest;
-//        MessageDigest digester = MessageDigest.getInstance("SHA-256");
-        DERSet expected = new DERSet(new DEROctetString(input.getBytes()));
+        DERSet expected = new DERSet(new DEROctetString(Hex.decode(input.getBytes())));
 
         // When.
         ASN1Encodable actual = signedAttributes.get(messageDigestOID).getAttrValues();
