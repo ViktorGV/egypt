@@ -23,6 +23,7 @@ public class JsonUtils {
         JsonObject result = new Gson().fromJson(document, JsonObject.class);
         JsonArray signatures = new JsonArray();
         signatures.add(buildIssuerTypeSignature(signature));
+
         result.add("signatures", signatures);
         return result.toString();
     }

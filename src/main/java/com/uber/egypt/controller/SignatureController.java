@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 @RestController
 @RequestMapping("/sign")
 public class SignatureController {
@@ -18,6 +21,9 @@ public class SignatureController {
 
     @PostMapping
     public ResponseEntity<String> signDocuments(@RequestBody String jsonDocuments) {
-        return ResponseEntity.ok(documentSigningService.generateSignedDocuments(jsonDocuments));
+        var request = new String(Base64.getDecoder().decode(jsonDocuments), StandardCharsets.UTF_8);
+
+        var response = documentSigningService.generateSignedDocuments(request);
+        return ResponseEntity.ok(response);
     }
 }

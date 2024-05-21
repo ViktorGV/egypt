@@ -74,7 +74,7 @@ public class DocumentSigningService {
 
         @Override
         public BiConsumer<JsonArray, JsonObject> accumulator() {
-            return (array, object) -> array.add(object);
+            return JsonArray::add;
         }
 
         @Override
